@@ -22,6 +22,27 @@ git clone https://github.com/pedrolamas/klipper-virtual-pins.git
 ./klipper-virtual-pins/install.sh
 ```
 
+## Usage
+
+First, add an empty `[virtual_pins]` section to your `printer.cfg` to enable the `virtual_pins`:
+
+```ini
+[virtual_pins]
+```
+
+After that, use `virtual_pin:` prefix followed by a random identifier (example `virtual_pin:test`)
+
+Here's a fully working `printer.cfg` snippet:
+
+```ini
+[virtual_pins]
+
+[output_pin test]
+pin: virtual_pin:test_pin
+pwm: True
+cycle_time: 0.1
+```
+
 ## Credits and Acknowledgements
 
 - [Klipper](https://github.com/Klipper3d/klipper) by [Kevin O'Connor](https://github.com/KevinOConnor)
