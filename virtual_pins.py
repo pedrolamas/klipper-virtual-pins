@@ -195,6 +195,7 @@ class AdcVirtualPin(VirtualPin):
         range = self._max_sample - self._min_sample
         sample_value = (self._value * range) + self._min_sample
         self._callback(eventtime, sample_value)
+        return eventtime + 2.
 
     def get_status(self, eventtime):
         return {
