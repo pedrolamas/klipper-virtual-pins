@@ -79,6 +79,9 @@ class VirtualPins:
     def estimated_print_time(self, eventtime):
         return 0
 
+    def request_move_queue_slot(self):
+        pass
+
     def get_status(self, eventtime):
         return {
             'pins': {
