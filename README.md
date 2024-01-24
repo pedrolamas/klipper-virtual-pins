@@ -1,6 +1,6 @@
 # Klipper virtual_pins module
 
-[![Project Maintenance](https://img.shields.io/maintenance/yes/2023.svg)](https://github.com/pedrolamas/klipper-virtual-pins 'GitHub Repository')
+[![Project Maintenance](https://img.shields.io/maintenance/yes/2024.svg)](https://github.com/pedrolamas/klipper-virtual-pins 'GitHub Repository')
 [![License](https://img.shields.io/github/license/pedrolamas/klipper-virtual-pins.svg)](https://github.com/pedrolamas/klipper-virtual-pins/blob/master/LICENSE 'License')
 
 [![Follow pedrolamas on Twitter](https://img.shields.io/twitter/follow/pedrolamas?label=Follow%20@pedrolamas%20on%20Twitter&style=social)](https://twitter.com/pedrolamas)
