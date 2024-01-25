@@ -79,6 +79,9 @@ class VirtualPins:
     def estimated_print_time(self, eventtime):
         return 0
 
+    def register_stepqueue(self, stepqueue):
+        pass
+
     def request_move_queue_slot(self):
         pass
 
@@ -92,6 +95,9 @@ class VirtualPins:
 
 class VirtualCommand:
     def send(self, data=(), minclock=0, reqclock=0):
+        pass
+
+    def get_command_tag(self):
         pass
 
 class VirtualCommandQuery:
