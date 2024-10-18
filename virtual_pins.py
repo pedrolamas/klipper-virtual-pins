@@ -194,8 +194,8 @@ class AdcVirtualPin(VirtualPin):
     def setup_adc_callback(self, report_time, callback):
         self._callback = callback
 
-    def setup_minmax(self, sample_time, sample_count,
-                     minval=0., maxval=1., range_check_count=0):
+    def setup_adc_sample(self, sample_time, sample_count,
+                         minval=0., maxval=1., range_check_count=0):
 
         self._min_sample = minval
         self._max_sample = maxval
