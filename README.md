@@ -43,6 +43,15 @@ pwm: True
 cycle_time: 0.1
 ```
 
+## Commands
+
+### SET_VIRTUAL_PIN
+
+`SET_VIRTUAL_PIN PIN=config_name VALUE=<value> [DELAY=<delay>]`: Set the pin to the given `VALUE`. `VALUE` should be 0 or 1 for "digital" output pins. For PWM pins, set to a value between 0.0 and 1.0.
+You can also specify a `DELAY` duration for the value to be updated. Any `SET_VIRTUAL_PIN` call to the same pin will reset any pending delay.
+
+`SET_VIRTUAL_PIN PIN=config_name TEMPLATE=<template_name> [<param_x>=<literal>]`: If `TEMPLATE` is specified then it assigns a display_template to the given pin. For example, if one defined a `[display_template my_pin_template]` config section then one could assign `TEMPLATE=my_pin_template` here. The display_template should produce a string containing a floating point number with the desired value. The template will be continuously evaluated and the pin will be automatically set to the resulting value. One may set display_template parameters to use during template evaluation (parameters will be parsed as Python literals). If `TEMPLATE` is an empty string then this command will clear any previous template assigned to the pin (one can then use `SET_VIRTUAL_PIN` commands to manage the values directly).
+
 ## Credits and Acknowledgements
 
 - [Klipper](https://github.com/Klipper3d/klipper) by [Kevin O'Connor](https://github.com/KevinOConnor)
