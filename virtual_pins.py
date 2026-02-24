@@ -242,11 +242,12 @@ class AdcVirtualPin(VirtualPin):
         self._reactor.register_timer(self._raise_callback,
                                      self._reactor.monotonic() + 0.5)
 
-    def setup_adc_callback(self, report_time, callback):
+    def setup_adc_callback(self, callback):
         self._callback = callback
 
-    def setup_adc_sample(self, sample_time, sample_count,
-                         minval=0., maxval=1., range_check_count=0):
+    def setup_adc_sample(self, report_time, sample_time=0., sample_count=1,
+                         batch_num=1, minval=0., maxval=1.,
+                         range_check_count=0):
         self._sample_time = sample_time
         self._min_sample = minval
         self._max_sample = maxval
@@ -255,7 +256,7 @@ class AdcVirtualPin(VirtualPin):
         range = self._max_sample - self._min_sample
         value = (self._value * range) + self._min_sample
         if self._callback is not None:
-            self._callback(eventtime, value)
+            self._callback([(eventtime, value)])
         return eventtime + self._sample_time
 
     def get_status(self, eventtime):
