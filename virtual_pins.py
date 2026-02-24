@@ -253,8 +253,8 @@ class AdcVirtualPin(VirtualPin):
         self._max_sample = maxval
 
     def _raise_callback(self, eventtime):
-        range = self._max_sample - self._min_sample
-        value = (self._value * range) + self._min_sample
+        sample_range = self._max_sample - self._min_sample
+        value = (self._value * sample_range) + self._min_sample
         if self._callback is not None:
             self._callback([(eventtime, value)])
         return eventtime + self._sample_time
