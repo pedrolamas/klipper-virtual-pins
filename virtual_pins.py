@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2023 Pedro Lamas <pedrolamas@gmail.com>
 #
-# This file may be distributed under the terms of the GNU GPLv3 license.
+# This file may be distributed under the terms of the MIT license.
 
 import logging
 from . import output_pin
