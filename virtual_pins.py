@@ -23,12 +23,46 @@ class VirtualPins:
         self._pins = {}
         self._oid_count = 0
         self._config_callbacks = []
+        # Button tracking infrastructure
+        self._buttons = {}  # oid -> Button
+        self._response_handlers = {}  # (msg_name, oid) -> callback
         self._printer.register_event_handler("klippy:connect",
                                              self.handle_connect)
 
     def handle_connect(self):
         for cb in self._config_callbacks:
             cb()
+
+    def _poll_buttons(self, eventtime, oid):
+        if oid not in self._buttons:
+            return self._printer.get_reactor().NEVER
+
+        button = self._buttons[oid]
+        handler_key = ('buttons_state', oid)
+
+        if handler_key not in self._response_handlers:
+            return self._printer.get_reactor().NEVER
+
+        button_state = 0
+        for pos, pin_name in enumerate(button.pins):
+            if pin_name and pin_name in self._pins:
+                state = int(self._pins[pin_name].get_digital())
+                if state:
+                    button_state |= (1 << pos)
+
+        button_state ^= button.invert
+
+        params = {
+            'oid': oid,
+            'ack_count': button.ack_count & 0xff,  # Keep it as 8-bit
+            'state': bytearray([button_state]),
+            '#receive_time': eventtime
+        }
+
+        callback = self._response_handlers[handler_key]
+        callback(params)
+
+        return eventtime + 0.01
 
     def setup_pin(self, pin_type, pin_params):
         name = pin_params['pin']
@@ -43,6 +77,8 @@ class VirtualPins:
             pin = AdcVirtualPin(self, pin_params, start_value)
         elif pin_type == 'endstop':
             pin = EndstopVirtualPin(self, pin_params, start_value)
+        elif pin_type == 'digital_in':
+            pin = DigitalInVirtualPin(self, pin_params, start_value)
         else:
             raise self._ppins.error("unable to create virtual pin of type %s" % (
                 pin_type,))
@@ -56,8 +92,49 @@ class VirtualPins:
     def register_config_callback(self, cb):
         self._config_callbacks.append(cb)
 
+    def _parse_cmd(self, cmd):
+        parsed = {}
+        parts = cmd.split()
+        for part in parts[1:]:
+            if '=' in part:
+                key, value = part.split('=', 1)
+                parsed[key] = value
+        return parsed
+
     def add_config_cmd(self, cmd, is_init=False, on_restart=False):
-        pass
+        if cmd.startswith("config_buttons "):
+            # Parse: config_buttons oid=%d button_count=%d
+            parsed = self._parse_cmd(cmd)
+            oid = int(parsed.get('oid')) if 'oid' in parsed else None
+            button_count = int(parsed.get('button_count', 0))
+            if oid is not None:
+                self._buttons[oid] = Button(button_count)
+
+        elif cmd.startswith("buttons_add "):
+            # Parse: buttons_add oid=%d pos=%d pin=%s pull_up=%d
+            parsed = self._parse_cmd(cmd)
+            oid = int(parsed.get('oid')) if 'oid' in parsed else None
+            pos = int(parsed.get('pos')) if 'pos' in parsed else None
+            pin = parsed.get('pin')
+            if oid in self._buttons and pos is not None and pin is not None:
+                button = self._buttons[oid]
+                button.pins[pos] = pin
+                pin_params = {
+                    'pin': pin,
+                    'pullup': int(parsed.get('pull_up', 0)),
+                    'invert': 0
+                }
+                self.setup_pin('digital_in', pin_params)
+
+        elif cmd.startswith("buttons_query "):
+            # Parse: buttons_query oid=%d clock=%d rest_ticks=%d retransmit_count=%d invert=%d
+            parsed = self._parse_cmd(cmd)
+            oid = int(parsed.get('oid')) if 'oid' in parsed else None
+            if oid in self._buttons:
+                button = self._buttons[oid]
+                button.invert = int(parsed.get('invert', 0))
+                button.rest_ticks = int(parsed.get('rest_ticks', 0))
+                button.retransmit_count = int(parsed.get('retransmit_count', 0))
 
     def get_query_slot(self, oid):
         return 0
@@ -68,13 +145,35 @@ class VirtualPins:
     def get_printer(self):
         return self._printer
 
-    def register_response(self, cb, msg, oid=None):
-        pass
+    def register_serial_response(self, cb, msg, oid=None):
+        msg = msg.split()[0]
+        if msg == "buttons_state" and oid is not None:
+            self._response_handlers[(msg, oid)] = cb
+            if oid in self._buttons and self._buttons[oid].timer is None:
+                reactor = self._printer.get_reactor()
+                self._buttons[oid].timer = reactor.register_timer(
+                    lambda et: self._poll_buttons(et, oid),
+                    reactor.monotonic() + 0.01)
+        return VirtualAsyncResponseWrapper(lambda: self._unregister_response_wrapper(msg, oid))
+
+    def _unregister_response_wrapper(self, msg, oid):
+        self._response_handlers.pop((msg, oid), None)
+        if msg == "buttons_state" and oid in self._buttons:
+            button = self._buttons[oid]
+            if button.timer is not None:
+                self._printer.get_reactor().unregister_timer(button.timer)
+                button.timer = None
+
+    def _increment_button_send_count(self, oid, count):
+        if oid in self._buttons:
+            self._buttons[oid].ack_count += count
 
     def alloc_command_queue(self):
         pass
 
     def lookup_command(self, msgformat, cq=None):
+        if msgformat.startswith("buttons_ack "):
+            return VirtualButtonCommand(self._increment_button_send_count)
         return VirtualCommand()
 
     def lookup_query_command(self, msgformat, respformat, oid=None,
@@ -107,6 +206,26 @@ class VirtualCommand:
 
     def get_command_tag(self):
         pass
+
+class VirtualButtonCommand:
+    def __init__(self, on_send):
+        self._on_send = on_send
+
+    def send(self, data=(), minclock=0, reqclock=0):
+        if len(data) >= 2:
+            oid = data[0]
+            count = data[1]
+            self._on_send(oid, count)
+
+    def get_command_tag(self):
+        pass
+
+class VirtualAsyncResponseWrapper:
+    def __init__(self, on_unregister):
+        self._on_unregister = on_unregister
+
+    def unregister(self):
+        self._on_unregister()
 
 class VirtualCommandQuery:
     def __init__(self, respformat, oid):
@@ -293,6 +412,29 @@ class EndstopVirtualPin(VirtualPin):
             'value': self._value,
             'type': 'endstop'
         }
+
+class DigitalInVirtualPin(VirtualPin):
+    def __init__(self, mcu, pin_params, start_value):
+        VirtualPin.__init__(self, mcu, pin_params, start_value)
+
+    def get_digital(self):
+        return (not not self._value) ^ self._invert
+
+    def get_status(self, eventtime):
+        return {
+            'value': self._value,
+            'type': 'digital_in'
+        }
+
+class Button:
+    def __init__(self, button_count):
+        self.button_count = button_count
+        self.pins = [None] * button_count
+        self.invert = 0
+        self.rest_ticks = 0
+        self.retransmit_count = 0
+        self.ack_count = 0
+        self.timer = None
 
 def load_config(config):
     return VirtualPins(config)
