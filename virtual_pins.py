@@ -50,7 +50,9 @@ class VirtualPins:
                 if state:
                     button_state |= (1 << pos)
 
-        button_state ^= button.invert
+        # Report raw pin states like the MCU firmware does; stock buttons.py
+        # applies button.invert itself in handle_buttons_state, so inverting
+        # here too would cancel out and break inverted buttons.
 
         params = {
             'oid': oid,
@@ -110,6 +112,8 @@ class VirtualPins:
             parsed = self._parse_cmd(cmd)
             oid = int(parsed.get('oid')) if 'oid' in parsed else None
             button_count = int(parsed.get('button_count', 0))
+            if button_count > 8:
+                raise self._ppins.error("Max of 8 buttons per oid")
             if oid is not None:
                 self._buttons[oid] = Button(button_count)
 
@@ -121,6 +125,9 @@ class VirtualPins:
             pin = parsed.get('pin')
             if oid in self._buttons and pos is not None and pin is not None:
                 button = self._buttons[oid]
+                if pos >= button.button_count:
+                    raise self._ppins.error(
+                        "Set button past maximum button count")
                 button.pins[pos] = pin
                 pin_params = {
                     'pin': pin,
