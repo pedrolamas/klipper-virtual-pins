@@ -412,6 +412,9 @@ class EndstopVirtualPin(VirtualPin):
 
     def home_start(self, print_time, sample_time, sample_count, rest_time,
                    triggered=True):
+        if self._home_timer is not None:
+            self._reactor.unregister_timer(self._home_timer)
+            self._home_timer = None
         self._triggered = triggered
         self._trigger_completion = self._reactor.completion()
         self._home_timer = self._reactor.register_timer(
