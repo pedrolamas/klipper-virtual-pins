@@ -65,23 +65,26 @@ class VirtualPins:
         return eventtime + 0.01
 
     def setup_pin(self, pin_type, pin_params):
-        name = pin_params['pin']
-        if name in self._pins:
-            return self._pins[name]
-        start_value = self._start_values.get(name)
-        if pin_type == 'digital_out':
-            pin = DigitalOutVirtualPin(self, pin_params, start_value)
-        elif pin_type == 'pwm':
-            pin = PwmVirtualPin(self, pin_params, start_value)
-        elif pin_type == 'adc':
-            pin = AdcVirtualPin(self, pin_params, start_value)
-        elif pin_type == 'endstop':
-            pin = EndstopVirtualPin(self, pin_params, start_value)
-        elif pin_type == 'digital_in':
-            pin = DigitalInVirtualPin(self, pin_params, start_value)
-        else:
+        pin_classes = {
+            'digital_out': DigitalOutVirtualPin,
+            'pwm': PwmVirtualPin,
+            'adc': AdcVirtualPin,
+            'endstop': EndstopVirtualPin,
+            'digital_in': DigitalInVirtualPin,
+        }
+        pin_class = pin_classes.get(pin_type)
+        if pin_class is None:
             raise self._ppins.error("unable to create virtual pin of type %s" % (
                 pin_type,))
+        name = pin_params['pin']
+        if name in self._pins:
+            existing = self._pins[name]
+            if not isinstance(existing, pin_class):
+                raise self._ppins.error(
+                    "virtual pin '%s' is already in use as a different type" % (
+                        name,))
+            return existing
+        pin = pin_class(self, pin_params, self._start_values.get(name))
         self._pins[name] = pin
         return pin
 
