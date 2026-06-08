@@ -1,0 +1,29 @@
+# Tests for virtual output_pin / pwm / adc / digital_in pins
+DICTIONARY atmega2560.dict
+CONFIG output_pins.cfg
+
+# Digital output pin: toggle on and off
+SET_VIRTUAL_PIN PIN=a VALUE=1
+SET_VIRTUAL_PIN PIN=a VALUE=0
+
+# Inverted digital output pin
+SET_VIRTUAL_PIN PIN=c VALUE=1
+SET_VIRTUAL_PIN PIN=c VALUE=0
+
+# PWM output pin: fractional values
+SET_VIRTUAL_PIN PIN=b VALUE=0.5
+SET_VIRTUAL_PIN PIN=b VALUE=1.0
+SET_VIRTUAL_PIN PIN=b VALUE=0.0
+
+# Delayed value update
+SET_VIRTUAL_PIN PIN=a VALUE=1 DELAY=0.5
+G4 P1000
+
+# Assign and then clear a template
+SET_VIRTUAL_PIN PIN=b TEMPLATE=tpl
+G4 P500
+SET_VIRTUAL_PIN PIN=b TEMPLATE=
+SET_VIRTUAL_PIN PIN=b VALUE=0.0
+
+# Let the virtual adc report at least once
+G4 P1000

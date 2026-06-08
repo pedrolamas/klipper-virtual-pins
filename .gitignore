@@ -1,3 +1,10 @@
+# Built MCU dictionaries for the test runner
+test/dict/
+
+# Python caches
+__pycache__/
+.mypy_cache/
+
 # Logs
 logs
 *.log

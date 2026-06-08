@@ -1,6 +1,6 @@
 #!/bin/bash
 
-KLIPPER_DIR="${HOME}/klipper"
+KLIPPER_DIR="${KLIPPER_DIR:-${HOME}/klipper}"
 
 VIRTUAL_PINS_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 

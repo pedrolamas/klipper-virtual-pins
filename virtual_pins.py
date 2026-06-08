@@ -433,6 +433,12 @@ class EndstopVirtualPin(VirtualPin):
             self._home_timer = None
         if self._trigger_completion is None:
             return 0.
+        # In file-output mode (klippy batch/simulation) the reactor is not
+        # pumped during the drip move, so the poll timer never fires; mirror
+        # the stock MCU endstop (mcu.py) and report a successful trigger.
+        if self._real_mcu.is_fileoutput():
+            self._trigger_completion = None
+            return home_end_time
         triggered = self._trigger_completion.test()
         self._trigger_completion = None
         return home_end_time if triggered else 0.
