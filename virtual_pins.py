@@ -395,9 +395,14 @@ class AdcVirtualPin(VirtualPin):
         }
 
 class EndstopVirtualPin(VirtualPin):
+    RETRY_QUERY = 0.001  # pin poll interval during a homing move
+
     def __init__(self, mcu, pin_params, start_value):
         VirtualPin.__init__(self, mcu, pin_params, start_value)
         self._steppers = []
+        self._trigger_completion = None
+        self._triggered = True
+        self._home_timer = None
 
     def add_stepper(self, stepper):
         self._steppers.append(stepper)
@@ -407,12 +412,30 @@ class EndstopVirtualPin(VirtualPin):
 
     def home_start(self, print_time, sample_time, sample_count, rest_time,
                    triggered=True):
-        completion = self._reactor.completion()
-        completion.complete(True)
-        return completion
+        if self._home_timer is not None:
+            self._reactor.unregister_timer(self._home_timer)
+            self._home_timer = None
+        self._triggered = triggered
+        self._trigger_completion = self._reactor.completion()
+        self._home_timer = self._reactor.register_timer(
+            self._home_check, self._reactor.monotonic() + sample_time)
+        return self._trigger_completion
+
+    def _home_check(self, eventtime):
+        if self.query_endstop(eventtime) == (not not self._triggered):
+            self._trigger_completion.complete(True)
+            return self._reactor.NEVER
+        return eventtime + self.RETRY_QUERY
 
     def home_wait(self, home_end_time):
-        return 1
+        if self._home_timer is not None:
+            self._reactor.unregister_timer(self._home_timer)
+            self._home_timer = None
+        if self._trigger_completion is None:
+            return 0.
+        triggered = self._trigger_completion.test()
+        self._trigger_completion = None
+        return home_end_time if triggered else 0.
 
     def get_steppers(self):
         return list(self._steppers)
