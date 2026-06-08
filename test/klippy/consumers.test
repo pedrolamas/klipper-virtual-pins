@@ -1,0 +1,17 @@
+# Smoke test: virtual pins wired through real Klipper consumer modules
+DICTIONARY atmega2560.dict
+CONFIG consumers.cfg
+
+# Fan on a virtual pwm pin
+M106 S128
+M106 S255
+M107
+
+# Filament switch sensor on a virtual digital_in pin
+SET_FILAMENT_SENSOR SENSOR=fs ENABLE=1
+SET_VIRTUAL_PIN PIN=fspin VALUE=1
+G4 P200
+QUERY_FILAMENT_SENSOR SENSOR=fs
+SET_VIRTUAL_PIN PIN=fspin VALUE=0
+G4 P200
+QUERY_FILAMENT_SENSOR SENSOR=fs

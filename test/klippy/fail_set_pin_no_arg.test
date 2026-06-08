@@ -1,0 +1,6 @@
+# SET_VIRTUAL_PIN with neither VALUE nor TEMPLATE must raise an error
+DICTIONARY atmega2560.dict
+CONFIG fail_set_pin_no_arg.cfg
+SHOULD_FAIL
+
+SET_VIRTUAL_PIN PIN=a
