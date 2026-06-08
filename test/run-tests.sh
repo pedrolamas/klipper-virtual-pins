@@ -54,18 +54,22 @@ PYTHON="${PYTHON:-python3}"
 echo "run-tests: installing virtual_pins into ${KLIPPER_DIR}"
 KLIPPER_DIR="${KLIPPER_DIR}" bash "${REPO_DIR}/install.sh"
 
-# Build the MCU dictionary if missing (or when forced)
+# Build the MCU dictionary if missing (or when forced). The build is directed
+# into a throwaway directory (overriding the Makefile's OUT and KCONFIG_CONFIG)
+# so the Klipper checkout's own .config and out/ build are left untouched.
 if [ "${REBUILD_DICT}" = "1" ] || [ ! -f "${DICT_FILE}" ]; then
     echo "run-tests: building atmega2560 dictionary"
     mkdir -p "${DICT_DIR}"
+    BUILD_DIR="$(mktemp -d)"
+    cp "${KLIPPER_DIR}/test/configs/atmega2560.config" "${BUILD_DIR}/.config"
     (
         cd "${KLIPPER_DIR}"
-        make clean
-        cp test/configs/atmega2560.config .config
-        make olddefconfig
-        make
+        make OUT="${BUILD_DIR}/out/" KCONFIG_CONFIG="${BUILD_DIR}/.config" \
+            olddefconfig
+        make OUT="${BUILD_DIR}/out/" KCONFIG_CONFIG="${BUILD_DIR}/.config"
     )
-    cp "${KLIPPER_DIR}/out/klipper.dict" "${DICT_FILE}"
+    cp "${BUILD_DIR}/out/klipper.dict" "${DICT_FILE}"
+    rm -rf "${BUILD_DIR}"
 fi
 
 # Run the regression tests from within the Klipper checkout
