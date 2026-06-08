@@ -1,0 +1,4 @@
+# A non-numeric start_values entry must raise a config error
+DICTIONARY atmega2560.dict
+CONFIG fail_bad_start_value.cfg
+SHOULD_FAIL

@@ -1,0 +1,17 @@
+# Tests for virtual digital_in pins driving buttons
+DICTIONARY atmega2560.dict
+CONFIG buttons.cfg
+
+# Toggle the normal button and let the poll timer observe each state
+SET_VIRTUAL_PIN PIN=btn VALUE=1
+G4 P200
+SET_VIRTUAL_PIN PIN=btn VALUE=0
+G4 P200
+QUERY_BUTTON BUTTON=btn
+
+# Toggle the inverted button
+SET_VIRTUAL_PIN PIN=btn2 VALUE=1
+G4 P200
+SET_VIRTUAL_PIN PIN=btn2 VALUE=0
+G4 P200
+QUERY_BUTTON BUTTON=btn2

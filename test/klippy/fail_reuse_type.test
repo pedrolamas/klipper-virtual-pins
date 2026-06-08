@@ -1,0 +1,4 @@
+# A virtual pin name reused across two config sections must raise an error
+DICTIONARY atmega2560.dict
+CONFIG fail_reuse_type.cfg
+SHOULD_FAIL
