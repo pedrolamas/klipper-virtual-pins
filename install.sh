@@ -16,8 +16,12 @@ if [ -e "${KLIPPER_DIR}/klippy/extras/virtual_pins.py" ]; then
 fi
 ln -s "${VIRTUAL_PINS_DIR}/virtual_pins.py" "${KLIPPER_DIR}/klippy/extras/virtual_pins.py"
 
-if ! grep -q "klippy/extras/virtual_pins.py" "${KLIPPER_DIR}/.git/info/exclude"; then
-    echo "klippy/extras/virtual_pins.py" >> "${KLIPPER_DIR}/.git/info/exclude"
+# Only update the git exclude list when KLIPPER_DIR is a git checkout
+if [ -d "${KLIPPER_DIR}/.git/info" ]; then
+    EXCLUDE_FILE="${KLIPPER_DIR}/.git/info/exclude"
+    if ! grep -q "klippy/extras/virtual_pins.py" "${EXCLUDE_FILE}" 2>/dev/null; then
+        echo "klippy/extras/virtual_pins.py" >> "${EXCLUDE_FILE}"
+    fi
 fi
 
 echo "virtual_pins: installation successful."
