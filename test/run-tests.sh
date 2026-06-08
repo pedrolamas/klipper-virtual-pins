@@ -61,6 +61,7 @@ if [ "${REBUILD_DICT}" = "1" ] || [ ! -f "${DICT_FILE}" ]; then
     echo "run-tests: building atmega2560 dictionary"
     mkdir -p "${DICT_DIR}"
     BUILD_DIR="$(mktemp -d)"
+    trap 'rm -rf "${BUILD_DIR}"' EXIT
     cp "${KLIPPER_DIR}/test/configs/atmega2560.config" "${BUILD_DIR}/.config"
     (
         cd "${KLIPPER_DIR}"
@@ -70,6 +71,7 @@ if [ "${REBUILD_DICT}" = "1" ] || [ ! -f "${DICT_FILE}" ]; then
     )
     cp "${BUILD_DIR}/out/klipper.dict" "${DICT_FILE}"
     rm -rf "${BUILD_DIR}"
+    trap - EXIT
 fi
 
 # Run the regression tests from within the Klipper checkout
