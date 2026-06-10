@@ -1,0 +1,15 @@
+# Tests for MCU-compat consumers (pwm_cycle_time, pwm_tool) on virtual pins.
+# Simply loading pwm_consumers.cfg exercises the load-time paths that call
+# MCU-only methods directly on the virtual_pin chip:
+#   - [pwm_cycle_time] -> chip.max_nominal_duration()
+#   - [pwm_tool] hardware_pwm -> chip.max_nominal_duration() and, in
+#     build_config, chip.get_constant_float("PWM_MAX")
+# [pwm_tool] is intentionally not driven via SET_PIN: its runtime send goes
+# through a C syncemitter (chelper FFI) that virtual pins do not emulate.
+DICTIONARY atmega2560.dict
+CONFIG pwm_consumers.cfg
+
+# Soft variable-frequency PWM (pwm_cycle_time runtime path works on virtual pins)
+SET_PIN PIN=pc VALUE=0.5
+SET_PIN PIN=pc VALUE=1.0
+SET_PIN PIN=pc VALUE=0.0
