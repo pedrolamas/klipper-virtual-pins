@@ -23,14 +23,21 @@ class VirtualPins:
         self._pins = {}
         self._oid_count = 0
         self._config_callbacks = []
+        self._post_init_callbacks = []
         # Button tracking infrastructure
         self._buttons = {}  # oid -> Button
         self._response_handlers = {}  # (msg_name, oid) -> callback
         self._printer.register_event_handler("klippy:connect",
                                              self.handle_connect)
+        self._printer.register_event_handler("klippy:ready",
+                                             self._handle_post_init)
 
     def handle_connect(self):
         for cb in self._config_callbacks:
+            cb()
+
+    def _handle_post_init(self):
+        for cb in self._post_init_callbacks:
             cb()
 
     def _poll_buttons(self, eventtime, oid):
@@ -96,6 +103,9 @@ class VirtualPins:
 
     def register_config_callback(self, cb):
         self._config_callbacks.append(cb)
+
+    def register_post_init_callback(self, cb):
+        self._post_init_callbacks.append(cb)
 
     def _parse_cmd(self, cmd):
         parsed = {}
@@ -181,6 +191,24 @@ class VirtualPins:
     def alloc_command_queue(self):
         pass
 
+    def get_name(self):
+        return 'virtual_pin'
+
+    def is_fileoutput(self):
+        return self._printer.get_start_args().get('debugoutput') is not None
+
+    def try_lookup_command(self, msgformat):
+        return self.lookup_command(msgformat)
+
+    def check_valid_response(self, msgformat):
+        return True
+
+    def min_schedule_time(self):
+        return 0.100
+
+    def max_nominal_duration(self):
+        return 3.0
+
     def lookup_command(self, msgformat, cq=None):
         if msgformat.startswith("buttons_ack "):
             return VirtualButtonCommand(self._increment_button_send_count)
@@ -193,8 +221,20 @@ class VirtualPins:
     def get_enumerations(self):
         return {}
 
+    def get_constants(self):
+        return {}
+
+    def get_constant_float(self, name):
+        return 1.
+
     def print_time_to_clock(self, print_time):
         return 0
+
+    def clock_to_print_time(self, clock):
+        return 0.
+
+    def clock32_to_clock64(self, clock32):
+        return clock32
 
     def estimated_print_time(self, eventtime):
         return 0
@@ -215,7 +255,7 @@ class VirtualCommand:
         pass
 
     def get_command_tag(self):
-        pass
+        return 0
 
 class VirtualButtonCommand:
     def __init__(self, on_send):
@@ -228,7 +268,7 @@ class VirtualButtonCommand:
             self._on_send(oid, count)
 
     def get_command_tag(self):
-        pass
+        return 0
 
 class VirtualAsyncResponseWrapper:
     def __init__(self, on_unregister):
@@ -377,7 +417,7 @@ class AdcVirtualPin(VirtualPin):
     def setup_adc_sample(self, report_time, sample_time=0., sample_count=1,
                          batch_num=1, minval=0., maxval=1.,
                          range_check_count=0):
-        self._sample_time = sample_time
+        self._report_time = report_time
         self._min_sample = minval
         self._max_sample = maxval
 
@@ -386,7 +426,7 @@ class AdcVirtualPin(VirtualPin):
         value = (self._value * sample_range) + self._min_sample
         if self._callback is not None:
             self._callback([(eventtime, value)])
-        return eventtime + self._sample_time
+        return eventtime + self._report_time
 
     def get_status(self, eventtime):
         return {
