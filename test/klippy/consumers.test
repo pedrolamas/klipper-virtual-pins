@@ -15,3 +15,8 @@ QUERY_FILAMENT_SENSOR SENSOR=fs
 SET_VIRTUAL_PIN PIN=fspin VALUE=0
 G4 P200
 QUERY_FILAMENT_SENSOR SENSOR=fs
+
+# Thermistor on a virtual adc pin; QUERY_ADC calls pin.get_last_value()
+SET_VIRTUAL_PIN PIN=thpin VALUE=0.5
+QUERY_ADC NAME="temperature_sensor th"
+QUERY_ADC NAME="temperature_sensor th" PULLUP=4700

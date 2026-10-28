@@ -254,6 +254,9 @@ class VirtualCommand:
     def send(self, data=(), minclock=0, reqclock=0):
         pass
 
+    def send_wait_ack(self, data=(), minclock=0, reqclock=0):
+        pass
+
     def get_command_tag(self):
         return 0
 
@@ -285,7 +288,7 @@ class VirtualCommandQuery:
             key, _ = entry.split('=')
             self._response[key] = oid if key == 'oid' else 1
 
-    def send(self, data=(), minclock=0, reqclock=0):
+    def send(self, data=(), minclock=0, reqclock=0, retry=True):
         return self._response
 
     def send_with_preface(self, preface_cmd, preface_data=(), data=(),
@@ -384,6 +387,10 @@ class PwmVirtualPin(VirtualPin):
     def setup_cycle_time(self, cycle_time, hardware_pwm=False):
         pass
 
+    def next_aligned_print_time(self, print_time, allow_early=0.):
+        # No pwm cycle to align with; used by servo.py
+        return print_time
+
     def set_pwm(self, print_time, value, cycle_time=None):
         self._set_value(value)
 
@@ -404,6 +411,7 @@ class AdcVirtualPin(VirtualPin):
         self._callback = None
         self._min_sample = 0.
         self._max_sample = 0.
+        self._last_state = (0., 0.)
         self._printer.register_event_handler("klippy:connect",
                                             self.handle_connect)
 
@@ -424,9 +432,14 @@ class AdcVirtualPin(VirtualPin):
     def _raise_callback(self, eventtime):
         sample_range = self._max_sample - self._min_sample
         value = (self._value * sample_range) + self._min_sample
+        self._last_state = (eventtime, value)
         if self._callback is not None:
             self._callback([(eventtime, value)])
         return eventtime + self._report_time
+
+    def get_last_value(self):
+        # Used by query_adc.py (QUERY_ADC) and adc_temperature.py
+        return self._last_state
 
     def get_status(self, eventtime):
         return {

@@ -13,3 +13,13 @@ CONFIG pwm_consumers.cfg
 SET_PIN PIN=pc VALUE=0.5
 SET_PIN PIN=pc VALUE=1.0
 SET_PIN PIN=pc VALUE=0.0
+
+# Servo on a virtual pwm pin. The dwells give each request its own print
+# time (requests sharing a time collapse to the last one), so servo._set_pwm
+# actually runs and calls pin.next_aligned_print_time().
+SET_SERVO SERVO=sv ANGLE=90
+G4 P100
+SET_SERVO SERVO=sv WIDTH=0.0015
+G4 P100
+SET_SERVO SERVO=sv WIDTH=0
+M400
